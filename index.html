@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EduConnect - Modern Study App</title>
     <style>
-        /* Soft Pastel Theme: Eye-Friendly */
         body { font-family: 'Roboto', sans-serif; background: #FAFAFA; color: #333; margin: 0; padding: 0; font-size: 18px; }
         .app { max-width: 800px; margin: 0 auto; padding: 20px; }
         .header { background: #E3F2FD; padding: 15px; text-align: center; border-radius: 10px; margin-bottom: 20px; }
@@ -28,9 +27,7 @@
         .notif-panel.hidden { display: none; }
         ul { list-style: none; padding: 0; }
         li { padding: 10px; border-bottom: 1px solid #eee; }
-        /* Responsive */
         @media (max-width: 600px) { .app { padding: 10px; } .nav { flex-direction: column; } .nav button { margin: 5px 0; } }
-        /* Smooth Transitions */
         .hidden, .card { transition: opacity 0.3s; }
     </style>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
@@ -52,7 +49,6 @@
             </div>
         </div>
 
-        <!-- Login Screen -->
         <div id="loginScreen">
             <div class="card">
                 <h2>Login</h2>
@@ -74,11 +70,10 @@
                     <input type="password" id="principalPass" placeholder="Password (admin123)">
                 </div>
                 <button onclick="login()">Login</button>
-                <p><small>Demo: Student ID/Pass 1001-1010 (e.g., 1001 for Class 6) | Teacher: 101/teacher123 | Principal: 150/admin123</small></p>
+                <p><small>Demo: Student ID/Pass 1001-1010 | Teacher: 101/teacher123 | Principal: 150/admin123</small></p>
             </div>
         </div>
 
-        <!-- Dashboards (Hidden Initially) -->
         <div id="dashboard" class="hidden">
             <div class="nav">
                 <button onclick="switchTab('home')" class="active">Home</button>
@@ -87,12 +82,10 @@
                 <button onclick="switchTab('profile')">Profile</button>
             </div>
 
-            <!-- Home Tab -->
             <div id="homeTab">
                 <div class="card" id="homeContent"></div>
             </div>
 
-            <!-- Classes/Chats Tab -->
             <div id="classesTab" class="hidden">
                 <div class="card">
                     <h3 id="chatTitle">Class Chat & Subjects</h3>
@@ -117,12 +110,10 @@
                 </div>
             </div>
 
-            <!-- Notices Tab -->
             <div id="noticesTab" class="hidden">
                 <div class="card" id="noticesList"></div>
             </div>
 
-            <!-- Profile Tab -->
             <div id="profileTab" class="hidden">
                 <div class="card">
                     <h3>Profile</h3>
@@ -137,14 +128,14 @@
     </div>
 
     <script>
-        // Global Variables
+        // ===================== EduConnect JS (Full Fixed) =====================
+
         let currentUser  = null;
         let currentClass = '9';
         let unreadNotifs = 0;
         let isNotifOpen = false;
         let notifications = JSON.parse(localStorage.getItem('notifications') || '[]');
 
-        // Mock Data Initialization (localStorage)
         function initMockData() {
             if (!localStorage.getItem('classes')) {
                 const classes = {};
@@ -159,109 +150,97 @@
                 }
                 localStorage.setItem('classes', JSON.stringify(classes));
             }
-            if (!localStorage.getItem('chats')) localStorage.setItem('chats', JSON.stringify({6: [], 7: [], 8: [], 9: [], 10: [], 11: [], 12: []}));
+            if (!localStorage.getItem('chats')) localStorage.setItem('chats', JSON.stringify({6: [],7:[],8:[],9:[],10:[],11:[],12:[]}));
             if (!localStorage.getItem('notices')) localStorage.setItem('notices', JSON.stringify([]));
             if (!localStorage.getItem('users')) localStorage.setItem('users', JSON.stringify({ online: [], blocked: [] }));
             if (!localStorage.getItem('uploads')) localStorage.setItem('uploads', JSON.stringify([]));
             if (!localStorage.getItem('notifications')) localStorage.setItem('notifications', JSON.stringify([]));
         }
 
-        // Mock Students (ID-based profiles)
         const mockStudents = {};
-        for (let i = 1; i <= 10; i++) {
+        for (let i=1;i<=10;i++){
             const id = `10${i}`;
-            const cls = 5 + i;  // 1001: Class 6, 1010: Class 12
-            mockStudents[id] = { class: cls, name: `Student ${id}`, blocked: false };
+            const cls = 5+i;
+            mockStudents[id] = { class: cls, name: `Student ${id}`, blocked:false };
         }
 
-        // Initialize on Load
         initMockData();
-        toggleLoginFields();  // Set initial fields
+        toggleLoginFields();
 
-        // UI Functions
-        function toggleLoginFields() {
+        window.onload = ()=>{
+            const savedUser = JSON.parse(localStorage.getItem('currentUser'));
+            if(savedUser){
+                currentUser = savedUser;
+                document.getElementById('loginScreen').classList.add('hidden');
+                document.getElementById('dashboard').classList.remove('hidden');
+                currentClass = currentUser.class ? currentUser.class.toString() : '9';
+                updateUIAfterLogin();
+            }
+        };
+
+        function toggleLoginFields(){
             const role = document.getElementById('roleSelect').value;
-            document.getElementById('studentFields').classList.toggle('hidden', role !== 'student');
-            document.getElementById('teacherFields').classList.toggle('hidden', role !== 'teacher');
-            document.getElementById('principalFields').classList.toggle('hidden', role !== 'principal');
+            document.getElementById('studentFields').classList.toggle('hidden',role!=='student');
+            document.getElementById('teacherFields').classList.toggle('hidden',role!=='teacher');
+            document.getElementById('principalFields').classList.toggle('hidden',role!=='principal');
         }
 
-        function login() {
+        function login(){
             const role = document.getElementById('roleSelect').value;
-            let valid = false;
-            let userData = {};
+            let valid = false; let userData={};
 
-            if (role === 'student') {
-                const id = document.getElementById('studentId').value;
-                const pass = document.getElementById('studentPass').value;
-                if (mockStudents[id] && pass === id && !mockStudents[id].blocked) {
-                    valid = true;
-                    userData = { role: 'student', id, class: mockStudents[id].class, name: mockStudents[id].name, blocked: false };
-                    currentClass = userData.class.toString();  // Auto-set class for profile
+            if(role==='student'){
+                const id=document.getElementById('studentId').value;
+                const pass=document.getElementById('studentPass').value;
+                if(mockStudents[id] && pass===id && !mockStudents[id].blocked){
+                    valid=true; userData={role:'student',id,class:mockStudents[id].class,name:mockStudents[id].name,blocked:false};
+                    currentClass=userData.class.toString();
                 }
-            } else if (role === 'teacher') {
-                const code = parseInt(document.getElementById('teacherCode').value);
-                const pass = document.getElementById('teacherPass').value;
-                if (code >= 100 && pass === 'teacher123') {
-                    valid = true;
-                    userData = { role: 'teacher', code, blocked: false };
-                }
+            } else if(role==='teacher'){
+                const code=parseInt(document.getElementById('teacherCode').value);
+                const pass=document.getElementById('teacherPass').value;
+                if(code>=100 && pass==='teacher123'){ valid=true; userData={role:'teacher',code,blocked:false}; }
             } else {
-                const code = parseInt(document.getElementById('principalCode').value);
-                const pass = document.getElementById('principalPass').value;
-                if (code === 150 && pass === 'admin123') {
-                    valid = true;
-                    userData = { role: 'principal', code: 150, blocked: false };
-                }
+                const code=parseInt(document.getElementById('principalCode').value);
+                const pass=document.getElementById('principalPass').value;
+                if(code===150 && pass==='admin123'){ valid=true; userData={role:'principal',code:150,blocked:false}; }
             }
 
-            if (valid) {
-                currentUser  = userData;
-                localStorage.setItem('currentUser ', JSON.stringify(currentUser ));
+            if(valid){
+                currentUser=userData;
+                localStorage.setItem('currentUser',JSON.stringify(currentUser));
                 updateOnlineUsers();
                 document.getElementById('loginScreen').classList.add('hidden');
                 document.getElementById('dashboard').classList.remove('hidden');
-                document.getElementById('userRole').textContent = role.charAt(0).toUpperCase() + role.slice(1);
-                document.getElementById('userId').textContent = userData.id || userData.code;
-                document.getElementById('profileRole').textContent = role;
-                document.getElementById('profileId').textContent = userData.id || userData.code;
-                document.getElementById('profileClass').textContent = userData.class ? `Class ${userData.class}` : 'N/A';
-                document.getElementById('profileInfo').classList.remove('hidden');
-                document.getElementById('welcomeMsg').textContent = `Welcome, ${userData.name || role}!`;
-                switchTab('home');
-                loadHome();
-                if (role === 'teacher' || role === 'principal') {
-                    document.getElementById('modTools').classList.remove('hidden');
-                    document.getElementById('chatInputContainer').classList.remove('hidden');
-                }
-                updateNotifBadge();
-                addNotification(`Logged in as ${role} (${userData.id || userData.code})`);
-            } else {
-                alert('Invalid ID/Password or user blocked! For students, Password = ID (e.g., 1001/1001).');
-            }
+                updateUIAfterLogin();
+                addNotification(`Logged in as ${userData.role} (${userData.id || userData.code})`);
+            } else { alert('Invalid ID/Password or user blocked!'); }
         }
 
-        function logout() {
-            if (currentUser ) {
-                const users = JSON.parse(localStorage.getItem('users') || '{"online":[]}');
-                users.online = users.online.filter(u => u.id !== (currentUser .id || currentUser .code));
-                localStorage.setItem('users', JSON.stringify(users));
+        function updateUIAfterLogin(){
+            const role=currentUser.role;
+            document.getElementById('userRole').textContent=role.charAt(0).toUpperCase()+role.slice(1);
+            document.getElementById('userId').textContent=currentUser.id||currentUser.code;
+            document.getElementById('profileRole').textContent=role;
+            document.getElementById('profileId').textContent=currentUser.id||currentUser.code;
+            document.getElementById('profileClass').textContent=currentUser.class?`Class ${currentUser.class}`:'N/A';
+            document.getElementById('profileInfo').classList.remove('hidden');
+            document.getElementById('welcomeMsg').textContent=`Welcome, ${currentUser.name||role}!`;
+            switchTab('home'); loadHome();
+            if(role==='teacher'||role==='principal'){
+                document.getElementById('modTools').classList.remove('hidden');
+                document.getElementById('chatInputContainer').classList.remove('hidden');
             }
-            currentUser  = null;
-            localStorage.removeItem('currentUser ');
+            updateNotifBadge();
+        }
+
+        function logout(){
+            if(currentUser){
+                const users=JSON.parse(localStorage.getItem('users')||'{"online":[]}');
+                users.online=users.online.filter(u=>u.id!==(currentUser.id||currentUser.code));
+                localStorage.setItem('users',JSON.stringify(users));
+            }
+            currentUser=null;
+            localStorage.removeItem('currentUser');
             document.getElementById('dashboard').classList.add('hidden');
-            document.getElementById('loginScreen').classList.remove('hidden');
-            document.getElementById('profileInfo').classList.add('hidden');
-            document.getElementById('welcomeMsg').textContent = 'Welcome! Please login.';
-            updateOnlineUsers();
-            toggleNotifications();  // Close if open
-        }
-
-        function switchTab(tab) {
-            document.querySelectorAll('.nav button').forEach(btn => btn.classList.remove('active'));
-            event.target.classList.add('active');
-            ['homeTab', 'classesTab', 'noticesTab', 'profileTab'].forEach(id => {
-                document.getElementById(id).classList.toggle('hidden', id !== tab + 'Tab');
-            });
-            if (tab === 'classes') loadClassContent();
-            if (tab === 'not
+            document.getElementById('loginScreen').classList.remove('
