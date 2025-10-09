@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EduConnect - Modern Study App</title>
+    <style>
+        /* Soft Pastel Theme: Eye-Friendly */
+        body { font-family: 'Roboto', sans-serif; background: #FAFAFA; color: #333; margin: 0; padding: 0; font-size: 18px; }
+        .app { max-width: 800px; margin: 0 auto; padding: 20px; }
+        .header { background: #E3F2FD; padding: 15px; text-align: center; border-radius: 10px; margin-bottom: 20px; }
+        .nav { display: flex; justify-content: space-around; background: #F3E5F5; padding: 10px; border-radius: 10px; margin-bottom: 20px; }
+        .nav button { background: none; border: none; padding: 10px; font-size: 16px; cursor: pointer; border-radius: 5px; transition: background 0.3s; flex: 1; margin: 0 5px; }
+        .nav button.active { background: #E3F2FD; }
+        .nav button:hover { background: #E3F2FD; }
+        input, select, textarea { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ccc; border-radius: 5px; font-size: 16px; box-sizing: border-box; }
+        button { background: #E3F2FD; color: #333; padding: 12px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; width: 100%; margin: 5px 0; transition: background 0.3s; }
+        button:hover { background: #BBDEFB; }
+        button.danger { background: #FFCDD2; }
+        button.danger:hover { background: #EF9A9A; }
+        .card { background: white; padding: 15px; margin: 10px 0; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .hidden { display: none; }
+        .chat-messages { height: 300px; overflow-y: scroll; border: 1px solid #ccc; padding: 10px; background: #F9F9F9; border-radius: 5px; margin: 10px 0; }
+        .message { padding: 8px; margin: 5px 0; background: #E3F2FD; border-radius: 5px; word-wrap: break-word; }
+        .notification-bell { position: fixed; top: 20px; right: 20px; background: #F3E5F5; padding: 10px; border-radius: 50%; cursor: pointer; font-size: 24px; z-index: 1000; }
+        .notification-badge { background: red; color: white; border-radius: 50%; padding: 2px 6px; font-size: 12px; position: absolute; top: -5px; right: -5px; min-width: 18px; text-align: center; }
+        .notif-panel { position: fixed; top: 70px; right: 20px; background: white; padding: 15px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.2); z-index: 1000; max-width: 300px; max-height: 400px; overflow-y: auto; }
+        .notif-panel.hidden { display: none; }
+        ul { list-style: none; padding: 0; }
+        li { padding: 10px; border-bottom: 1px solid #eee; }
+        /* Responsive */
+        @media (max-width: 600px) { .app { padding: 10px; } .nav { flex-direction: column; } .nav button { margin: 5px 0; } }
+        /* Smooth Transitions */
+        .hidden, .card { transition: opacity 0.3s; }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="notification-bell" id="notifBell" onclick="toggleNotifications()">🔔<span class="notification-badge hidden" id="notifBadge">0</span></div>
+    <div id="notifPanel" class="notif-panel hidden">
+        <h4>Notifications</h4>
+        <ul id="notifList"></ul>
+        <button onclick="clearNotifications()">Clear All</button>
+    </div>
+    
+    <div class="app">
+        <div class="header">
+            <h1>EduConnect</h1>
+            <p id="welcomeMsg">Welcome! Please login.</p>
+            <div id="profileInfo" class="hidden">
+                <p>Logged in as: <span id="userRole"></span> (ID: <span id="userId"></span>) | <button onclick="logout()">Logout</button></p>
+            </div>
+        </div>
+
+        <!-- Login Screen -->
+        <div id="loginScreen">
+            <div class="card">
+                <h2>Login</h2>
+                <select id="roleSelect" onchange="toggleLoginFields()">
+                    <option value="student">Student</option>
+                    <option value="teacher">Teacher</option>
+                    <option value="principal">Principal</option>
+                </select>
+                <div id="studentFields">
+                    <input type="text" id="studentId" placeholder="Student ID (e.g., 1001)">
+                    <input type="password" id="studentPass" placeholder="Password (use your ID, e.g., 1001)">
+                </div>
+                <div id="teacherFields" class="hidden">
+                    <input type="number" id="teacherCode" placeholder="Code (100+)" min="100">
+                    <input type="password" id="teacherPass" placeholder="Password (teacher123)">
+                </div>
+                <div id="principalFields" class="hidden">
+                    <input type="number" id="principalCode" placeholder="Code (150)" value="150">
+                    <input type="password" id="principalPass" placeholder="Password (admin123)">
+                </div>
+                <button onclick="login()">Login</button>
+                <p><small>Demo: Student ID/Pass 1001-1010 (e.g., 1001 for Class 6) | Teacher: 101/teacher123 | Principal: 150/admin123</small></p>
+            </div>
+        </div>
+
+        <!-- Dashboards (Hidden Initially) -->
+        <div id="dashboard" class="hidden">
+            <div class="nav">
+                <button onclick="switchTab('home')" class="active">Home</button>
+                <button onclick="switchTab('classes')">Classes/Chats</button>
+                <button onclick="switchTab('notices')">Notices</button>
+                <button onclick="switchTab('profile')">Profile</button>
+            </div>
+
+            <!-- Home Tab -->
+            <div id="homeTab">
+                <div class="card" id="homeContent"></div>
+            </div>
+
+            <!-- Classes/Chats Tab -->
+            <div id="classesTab" class="hidden">
+                <div class="card">
+                    <h3 id="chatTitle">Class Chat & Subjects</h3>
+                    <select id="classSelect" onchange="loadClassContent()">
+                        <option value="6">Class 6</option>
+                        <option value="7">Class 7</option>
+                        <option value="8">Class 8</option>
+                        <option value="9">Class 9</option>
+                        <option value="10">Class 10</option>
+                        <option value="11">Class 11</option>
+                        <option value="12">Class 12</option>
+                    </select>
+                    <div id="subjectsList"></div>
+                    <div class="chat-messages" id="chatMessages"></div>
+                    <div id="chatInputContainer" class="hidden">
+                        <input type="text" id="chatInput" placeholder="Type message..." onkeypress="if(event.key==='Enter') sendMessage()">
+                        <button onclick="sendMessage()">Send</button>
+                    </div>
+                    <div id="modTools" class="hidden">
+                        <button class="danger" onclick="clearChat()">Clear Chat (Mod Only)</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Notices Tab -->
+            <div id="noticesTab" class="hidden">
+                <div class="card" id="noticesList"></div>
+            </div>
+
+            <!-- Profile Tab -->
+            <div id="profileTab" class="hidden">
+                <div class="card">
+                    <h3>Profile</h3>
+                    <p>Role: <span id="profileRole"></span></p>
+                    <p>ID/Code: <span id="profileId"></span></p>
+                    <p>Class: <span id="profileClass"></span></p>
+                    <button onclick="logout()">Logout</button>
+                    <button onclick="clearData()" class="danger">Clear All Data (Reset Demo)</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global Variables
+        let currentUser  = null;
+        let currentClass = '9';
+        let unreadNotifs = 0;
+        let isNotifOpen = false;
+        let notifications = JSON.parse(localStorage.getItem('notifications') || '[]');
+
+        // Mock Data Initialization (localStorage)
+        function initMockData() {
+            if (!localStorage.getItem('classes')) {
+                const classes = {};
+                for (let c = 6; c <= 12; c++) {
+                    classes[c] = {
+                        subjects: {
+                            Math: { notes: ['Sample Math Notes.pdf'], videos: ['Math Video 1.mp4'] },
+                            Science: { notes: ['Sample Science Notes.pdf'], videos: ['Science Video 1.mp4'] },
+                            English: { notes: ['Sample English Notes.pdf'], videos: ['English Video 1.mp4'] }
+                        }
+                    };
+                }
+                localStorage.setItem('classes', JSON.stringify(classes));
+            }
+            if (!localStorage.getItem('chats')) localStorage.setItem('chats', JSON.stringify({6: [], 7: [], 8: [], 9: [], 10: [], 11: [], 12: []}));
+            if (!localStorage.getItem('notices')) localStorage.setItem('notices', JSON.stringify([]));
+            if (!localStorage.getItem('users')) localStorage.setItem('users', JSON.stringify({ online: [], blocked: [] }));
+            if (!localStorage.getItem('uploads')) localStorage.setItem('uploads', JSON.stringify([]));
+            if (!localStorage.getItem('notifications')) localStorage.setItem('notifications', JSON.stringify([]));
+        }
+
+        // Mock Students (ID-based profiles)
+        const mockStudents = {};
+        for (let i = 1; i <= 10; i++) {
+            const id = `10${i}`;
+            const cls = 5 + i;  // 1001: Class 6, 1010: Class 12
+            mockStudents[id] = { class: cls, name: `Student ${id}`, blocked: false };
+        }
+
+        // Initialize on Load
+        initMockData();
+        toggleLoginFields();  // Set initial fields
+
+        // UI Functions
+        function toggleLoginFields() {
+            const role = document.getElementById('roleSelect').value;
+            document.getElementById('studentFields').classList.toggle('hidden', role !== 'student');
+            document.getElementById('teacherFields').classList.toggle('hidden', role !== 'teacher');
+            document.getElementById('principalFields').classList.toggle('hidden', role !== 'principal');
+        }
+
+        function login() {
+            const role = document.getElementById('roleSelect').value;
+            let valid = false;
+            let userData = {};
+
+            if (role === 'student') {
+                const id = document.getElementById('studentId').value;
+                const pass = document.getElementById('studentPass').value;
+                if (mockStudents[id] && pass === id && !mockStudents[id].blocked) {
+                    valid = true;
+                    userData = { role: 'student', id, class: mockStudents[id].class, name: mockStudents[id].name, blocked: false };
+                    currentClass = userData.class.toString();  // Auto-set class for profile
+                }
+            } else if (role === 'teacher') {
+                const code = parseInt(document.getElementById('teacherCode').value);
+                const pass = document.getElementById('teacherPass').value;
+                if (code >= 100 && pass === 'teacher123') {
+                    valid = true;
+                    userData = { role: 'teacher', code, blocked: false };
+                }
+            } else {
+                const code = parseInt(document.getElementById('principalCode').value);
+                const pass = document.getElementById('principalPass').value;
+                if (code === 150 && pass === 'admin123') {
+                    valid = true;
+                    userData = { role: 'principal', code: 150, blocked: false };
+                }
+            }
+
+            if (valid) {
+                currentUser  = userData;
+                localStorage.setItem('currentUser ', JSON.stringify(currentUser ));
+                updateOnlineUsers();
+                document.getElementById('loginScreen').classList.add('hidden');
+                document.getElementById('dashboard').classList.remove('hidden');
+                document.getElementById('userRole').textContent = role.charAt(0).toUpperCase() + role.slice(1);
+                document.getElementById('userId').textContent = userData.id || userData.code;
+                document.getElementById('profileRole').textContent = role;
+                document.getElementById('profileId').textContent = userData.id || userData.code;
+                document.getElementById('profileClass').textContent = userData.class ? `Class ${userData.class}` : 'N/A';
+                document.getElementById('profileInfo').classList.remove('hidden');
+                document.getElementById('welcomeMsg').textContent = `Welcome, ${userData.name || role}!`;
+                switchTab('home');
+                loadHome();
+                if (role === 'teacher' || role === 'principal') {
+                    document.getElementById('modTools').classList.remove('hidden');
+                    document.getElementById('chatInputContainer').classList.remove('hidden');
+                }
+                updateNotifBadge();
+                addNotification(`Logged in as ${role} (${userData.id || userData.code})`);
+            } else {
+                alert('Invalid ID/Password or user blocked! For students, Password = ID (e.g., 1001/1001).');
+            }
+        }
+
+        function logout() {
+            if (currentUser ) {
+                const users = JSON.parse(localStorage.getItem('users') || '{"online":[]}');
+                users.online = users.online.filter(u => u.id !== (currentUser .id || currentUser .code));
+                localStorage.setItem('users', JSON.stringify(users));
+            }
+            currentUser  = null;
+            localStorage.removeItem('currentUser ');
+            document.getElementById('dashboard').classList.add('hidden');
+            document.getElementById('loginScreen').classList.remove('hidden');
+            document.getElementById('profileInfo').classList.add('hidden');
+            document.getElementById('welcomeMsg').textContent = 'Welcome! Please login.';
+            updateOnlineUsers();
+            toggleNotifications();  // Close if open
+        }
+
+        function switchTab(tab) {
+            document.querySelectorAll('.nav button').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            ['homeTab', 'classesTab', 'noticesTab', 'profileTab'].forEach(id => {
+                document.getElementById(id).classList.toggle('hidden', id !== tab + 'Tab');
+            });
+            if (tab === 'classes') loadClassContent();
+            if (tab === 'not
